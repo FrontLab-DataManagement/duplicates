@@ -1,38 +1,16 @@
-Gold Standard Study Package
+### Folder description
 
-[study_name]/
-├── data
-│   ├── rawdata
-│   │   ├── cohort_1
-│   │   │   ├── modality_1
-│   │   │   └── modality_2
-│   │   └── cohort_2
-│   │       ├── modality_1
-│   │       └── modality_2
-│   └── derivatives
-│       ├── preprocessing
-│       └── analyses
-│
-├── code
-│   ├── preprocessing
-│   └── analyses
-│       ├── pipeline_1
-│       ├── pipeline_2
-│       └── pipeline_3
-│
-├── results
-│   ├── figures
-│   └── tables
-│
-└── manuscript
-    ├── drafts
-    ├── submissions
-    └── literature
+- **admin** – project administration, ethics, recruitment and data management plans  
+- **design** – study design and protocol documentation  
+- **code** – preprocessing and analysis pipelines  
+- **data** – raw, derivative, and confidential datasets  
+- **analysis_outputs** – intermediate and final analysis results  
+- **manuscript** – drafts and submission material  
+- **references** – literature and reference atlases
 
-###################################
+- ## Project Structure
 
-Full Research PI Project Package (vCREATEAM)
-
+```
 [project_name]/
 │
 ├── admin
@@ -92,6 +70,4 @@ Full Research PI Project Package (vCREATEAM)
 └── references
     └── atlas
         └── literature
-
- 
- ###################################
+```
