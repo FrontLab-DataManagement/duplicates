@@ -1,0 +1,19 @@
+```bash
+#!/usr/bin/env bash
+# Study project structure initializer
+# Author: Sara Monteiro, 2026
+
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+mkdir -p "$ROOT"/data/rawdata/cohort_{1,2}/modality_{1,2}
+mkdir -p "$ROOT"/data/derivatives/{preprocessing,analyses}
+
+mkdir -p "$ROOT"/code/preprocessing
+mkdir -p "$ROOT"/code/analyses/pipeline_{1,2,3}
+
+mkdir -p "$ROOT"/results/{figures,tables}
+
+mkdir -p "$ROOT"/manuscript/{drafts,submissions,literature}
+
+echo "Study folder structure created at: $ROOT"
+```
