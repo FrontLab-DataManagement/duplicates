@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Research project hierarchy initializer 'Full Research PI Project Package vCREATEAM'
+# Author: Sara Monteiro, 2026
+
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+mkdir -p "$ROOT"/admin/recruitment/planning
+mkdir -p "$ROOT"/admin/ethics
+mkdir -p "$ROOT"/admin/dmp/sops
+mkdir -p "$ROOT"/admin/pre_registration
+mkdir -p "$ROOT"/admin/tasks/{instructions,scripts,stimuli}
+
+mkdir -p "$ROOT"/design/protocol_description
+
+mkdir -p "$ROOT"/code/pipelines_and_scripts/{preproc_1,analysis_processing_2,analysis_processing_3,final_scripts}
+
+mkdir -p "$ROOT"/data/raw/cohort_{1,2}/modality_{1,2}
+mkdir -p "$ROOT"/data/derivatives/sub/ses
+mkdir -p "$ROOT"/data/derivatives/clinical_cognitive
+mkdir -p "$ROOT"/data/confidential/{participant_data,subj_identifiers}
+mkdir -p "$ROOT"/data/mods/{atlases,masks}
+
+mkdir -p "$ROOT"/analysis_outputs/intermediate/{figures,tables}
+mkdir -p "$ROOT"/analysis_outputs/final
+
+mkdir -p "$ROOT"/manuscript/drafts/submissions
+
+mkdir -p "$ROOT"/references/atlas/literature
+
+echo "Research project hierarchy created at: $ROOT"
