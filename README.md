@@ -8,6 +8,37 @@
 - **manuscript** – drafts and submission material  
 - **references** – literature and reference atlases
 
+- ## Study Structure
+```
+[study_name]/
+├── data
+│   ├── rawdata
+│   │   ├── cohort_1
+│   │   │   ├── modality_1
+│   │   │   └── modality_2
+│   │   └── cohort_2
+│   │       ├── modality_1
+│   │       └── modality_2
+│   └── derivatives
+│       ├── preprocessing
+│       └── analyses
+│
+├── code
+│   ├── preprocessing
+│   └── analyses
+│       ├── pipeline_1
+│       ├── pipeline_2
+│       └── pipeline_3
+│
+├── results
+│   ├── figures
+│   └── tables
+│
+└── manuscript
+    ├── drafts
+    ├── submissions
+    └── literature
+```
 - ## Project Structure
 
 ```
