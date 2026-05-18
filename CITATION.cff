@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+
+title: "ICM FrontLab Data Management Resources"
+
+message: "If you use these scripts or resources, please cite this repository."
+
+type: software
+
+authors:
+  - family-names: "Monteiro"
+    given-names: "Sara"
+
+repository-code: "https://github.com/arasorietnom/ICM_FrontLab_DataManagement"
+
+abstract: >
+  Collection of data management utilities, storage auditing tools,
+  duplicate detection workflows, metadata resources, and
+  neuroinformatics support scripts developed for the ICM FrontLab.
+
+keywords:
+  - neuroinformatics
+  - data management
+  - storage audit
+  - duplicate detection
+  - BIDS
+  - neuroscience
+
+license: AGPL-3.0-only
+
+version: 0.1.0
+
+date-released: 2026-03-15
