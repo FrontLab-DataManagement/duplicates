@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 
-title: "ICM FrontLab Data Management Resources"
+title: "Duplicate User Scan"
 
-message: "If you use these scripts or resources, please cite this repository."
+message: "If you use this software for storage auditing, duplicate detection, or data management workflows, please cite this repository."
 
 type: software
 
@@ -10,22 +10,36 @@ authors:
   - family-names: "Monteiro"
     given-names: "Sara"
 
-repository-code: "https://github.com/arasorietnom/ICM_FrontLab_DataManagement"
+repository-code: "https://github.com/arasorietnom/DuplicateUserScan"
 
 abstract: >
-  Collection of data management utilities, storage auditing tools,
-  duplicate detection workflows, metadata resources, and
-  neuroinformatics support scripts developed for the ICM FrontLab.
+  Duplicate User Scan is an open-source storage auditing and duplicate
+  detection framework designed for large-scale research infrastructures
+  and shared environments. The software performs exact duplicate
+  identification using file-size grouping and cryptographic hashing
+  (BLAKE3 or SHA256), supports user-level ownership analyses,
+  duplicate-capacity reporting, quarantine workflows, and automated
+  storage auditing. Features include progress monitoring, owner-based
+  summaries, duplicate burden estimation, reclaimable-capacity reports,
+  CSV export utilities, and optional quarantine pipelines suitable for
+  neuroinformatics, research data management, and institutional storage
+  environments.
 
 keywords:
-  - neuroinformatics
-  - data management
-  - storage audit
   - duplicate detection
+  - storage audit
+  - data management
+  - file deduplication
+  - storage optimization
+  - BLAKE3
+  - SHA256
+  - quarantine workflow
+  - neuroinformatics
+  - research infrastructure
   - BIDS
-  - neuroscience
+  - filesystem analysis
 
-license: AGPL-3.0-only
+license: MIT
 
 version: 0.1.0
 
