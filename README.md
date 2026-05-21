@@ -211,7 +211,7 @@ python duplicate_user_scan.py /path/to/target_directory --user USERNAME --per-ow
 Example:
 
 ```bash
-python duplicate_user_scan.py /path/to/storage --user Victor.Altmayer --per-owner-files
+python duplicate_user_scan.py /path/to/storage --user [username] --per-owner-files
 ```
 
 ---
@@ -225,7 +225,7 @@ python duplicate_user_scan.py /path/to/storage --user user1 user2 user3 --per-ow
 Example:
 
 ```bash
-python duplicate_user_scan.py /path/to/storage --user Victor.Altmayer nobody sara --per-owner-files
+python duplicate_user_scan.py /path/to/storage --user [username] nobody --per-owner-files
 ```
 
 ---
@@ -343,9 +343,8 @@ user_reports/per_owner/
 Example files:
 
 ```text
-duplicates_Victor.Altmayer.csv
+duplicates_[username].csv
 duplicates_nobody.csv
-duplicates_user1.csv
 ```
 
 Each file contains only the duplicates associated with that user.
@@ -391,7 +390,7 @@ python duplicate_user_scan.py --quarantine-from user_reports/duplicate_report_al
 Example:
 
 ```bash
-python duplicate_user_scan.py --quarantine-from user_reports/duplicate_report_Victor.Altmayer_20260521_153000.csv
+python duplicate_user_scan.py --quarantine-from user_reports/duplicate_report_[username]_20260521_153000.csv
 ```
 
 The script reads the CSV and moves only rows where:
