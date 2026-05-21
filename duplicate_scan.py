@@ -4,6 +4,7 @@ import argparse
 import csv
 import hashlib
 import os
+import pwd
 import shutil
 import sys
 import time
@@ -17,11 +18,30 @@ except ImportError:
     blake3 = None
 
 
+DEFAULT_REPORT_DIR = Path("/network/iss/levy/analyze/vol1e/sara/reports")
+
 EXCLUDED_NAMES = {
     ".git", ".venv", "venv", "env", "__pycache__", ".cache",
     "node_modules", "site-packages", ".nim_quarantine",
     "quarantined_duplicates"
 }
+
+
+def progress_bar(current: int, total: int, width: int = 30) -> str:
+    if total <= 0:
+        return "[" + "?" * width + "]"
+
+    ratio = min(max(current / total, 0), 1)
+    filled = int(width * ratio)
+    bar = "█" * filled + "-" * (width - filled)
+    return f"[{bar}] {ratio * 100:5.1f}%"
+
+
+def shorten_path(path: Path, max_len: int = 100) -> str:
+    text = str(path)
+    if len(text) <= max_len:
+        return text
+    return "..." + text[-(max_len - 3):]
 
 
 def resolve_hash_algorithm(algorithm: str) -> str:
@@ -65,13 +85,31 @@ def should_skip(path: Path, root: Path, skip_symlinks: bool) -> bool:
     return any(part in EXCLUDED_NAMES for part in rel_parts)
 
 
+def get_file_metadata(path: Path) -> dict:
+    stat = path.stat()
+
+    try:
+        owner = pwd.getpwuid(stat.st_uid).pw_name
+    except Exception:
+        owner = str(stat.st_uid)
+
+    return {
+        "owner_username": owner,
+        "last_opened": datetime.fromtimestamp(stat.st_atime).isoformat(timespec="seconds"),
+        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds"),
+        "created_or_metadata_changed": datetime.fromtimestamp(stat.st_ctime).isoformat(timespec="seconds"),
+    }
+
+
 def collect_files(root: Path, max_mb: float, skip_symlinks: bool):
     max_bytes = int(max_mb * 1024 * 1024)
 
     files = []
+
     skipped_empty = 0
     skipped_large = 0
     skipped_symlink_or_excluded = 0
+    skipped_permission = 0
     skipped_unreadable = 0
 
     dirs_scanned = 0
@@ -117,21 +155,29 @@ def collect_files(root: Path, max_mb: float, skip_symlinks: bool):
 
                 files.append(path)
 
+            except PermissionError:
+                skipped_permission += 1
+                continue
+
             except Exception:
                 skipped_unreadable += 1
                 continue
 
         if time.time() - last_print >= 5:
             print(
-                f"Scanning... dirs: {dirs_scanned:,} | "
+                f"\rScanning directory: {shorten_path(current)} | "
+                f"dirs: {dirs_scanned:,} | "
                 f"files seen: {files_seen:,} | "
                 f"files kept: {len(files):,} | "
                 f"skipped large: {skipped_large:,} | "
+                f"permission denied: {skipped_permission:,} | "
                 f"unreadable: {skipped_unreadable:,}",
+                end="",
                 flush=True
             )
             last_print = time.time()
 
+    print()
     print()
     print("File collection complete.")
     print(f"Directories scanned: {dirs_scanned:,}")
@@ -140,9 +186,18 @@ def collect_files(root: Path, max_mb: float, skip_symlinks: bool):
     print(f"Skipped empty files: {skipped_empty:,}")
     print(f"Skipped large files: {skipped_large:,}")
     print(f"Skipped excluded/symlink files: {skipped_symlink_or_excluded:,}")
-    print(f"Skipped unreadable files: {skipped_unreadable:,}")
+    print(f"Skipped permission denied: {skipped_permission:,}")
+    print(f"Skipped unreadable/other files: {skipped_unreadable:,}")
 
-    return files
+    return files, {
+        "dirs_scanned": dirs_scanned,
+        "files_seen": files_seen,
+        "skipped_empty": skipped_empty,
+        "skipped_large": skipped_large,
+        "skipped_symlink_or_excluded": skipped_symlink_or_excluded,
+        "skipped_permission": skipped_permission,
+        "skipped_unreadable": skipped_unreadable,
+    }
 
 
 def choose_keep_file(paths):
@@ -176,11 +231,14 @@ def write_csv(rows, output_csv: Path):
         "keep_file",
         "candidate_file",
         "quarantine_target",
+        "owner_username",
+        "last_opened",
+        "modified",
+        "created_or_metadata_changed",
         "hash_algorithm",
         "content_hash",
         "size_bytes",
         "size_mb",
-        "modified",
         "reason",
     ]
 
@@ -198,7 +256,11 @@ def scan_duplicates(root: Path, algorithm: str, max_mb: float, skip_symlinks: bo
     print("No files will be moved unless you confirm quarantine later.")
     print(f"Hash algorithm: {resolved_algorithm.upper()}")
 
-    files = collect_files(root, max_mb=max_mb, skip_symlinks=skip_symlinks)
+    files, collection_stats = collect_files(
+        root=root,
+        max_mb=max_mb,
+        skip_symlinks=skip_symlinks
+    )
 
     print()
     print("Grouping files by exact file size...")
@@ -223,8 +285,14 @@ def scan_duplicates(root: Path, algorithm: str, max_mb: float, skip_symlinks: bo
     print(f"Candidate files requiring hashing: {total_candidate_files:,}")
 
     by_hash = defaultdict(list)
+
     hash_errors = 0
+    permission_hash_errors = 0
     hashed_files = 0
+
+    live_duplicate_groups = 0
+    live_duplicate_files = 0
+
     last_print = time.time()
 
     print()
@@ -234,24 +302,54 @@ def scan_duplicates(root: Path, algorithm: str, max_mb: float, skip_symlinks: bo
         for path in same_size_files:
             try:
                 digest = compute_hash(path, resolved_algorithm)
-                by_hash[(size, digest)].append(path)
+
+                key = (size, digest)
+                before = len(by_hash[key])
+
+                by_hash[key].append(path)
+
+                after = len(by_hash[key])
                 hashed_files += 1
+
+                if before == 1 and after == 2:
+                    live_duplicate_groups += 1
+                    live_duplicate_files += 2
+                elif after > 2:
+                    live_duplicate_files += 1
+
+            except PermissionError:
+                permission_hash_errors += 1
+
             except Exception as e:
                 hash_errors += 1
+                print()
                 print(f"Skipped unreadable/hash-failed file: {path} ({e})", flush=True)
 
-        if time.time() - last_print >= 5 or group_idx == len(candidate_groups):
-            pct_groups = (group_idx / len(candidate_groups) * 100) if candidate_groups else 100
-            pct_files = (hashed_files / total_candidate_files * 100) if total_candidate_files else 100
+            if time.time() - last_print >= 5:
+                bar = progress_bar(hashed_files, total_candidate_files)
 
-            print(
-                f"Hashing progress: "
-                f"groups {group_idx:,}/{len(candidate_groups):,} ({pct_groups:.1f}%) | "
-                f"files hashed {hashed_files:,}/{total_candidate_files:,} ({pct_files:.1f}%) | "
-                f"errors: {hash_errors:,}",
-                flush=True
-            )
-            last_print = time.time()
+                print(
+                    f"\rHashing {bar} | "
+                    f"current: {shorten_path(path)} | "
+                    f"size-groups: {group_idx:,}/{len(candidate_groups):,} | "
+                    f"files: {hashed_files:,}/{total_candidate_files:,} | "
+                    f"duplicate groups: {live_duplicate_groups:,} | "
+                    f"duplicate files: {live_duplicate_files:,} | "
+                    f"permission errors: {permission_hash_errors:,} | "
+                    f"hash errors: {hash_errors:,}",
+                    end="",
+                    flush=True
+                )
+                last_print = time.time()
+
+    print()
+    print()
+    print("Hashing complete.")
+    print(f"Files hashed: {hashed_files:,}")
+    print(f"Live duplicate groups detected: {live_duplicate_groups:,}")
+    print(f"Live duplicate files detected: {live_duplicate_files:,}")
+    print(f"Permission errors during hashing: {permission_hash_errors:,}")
+    print(f"Hash/read errors during hashing: {hash_errors:,}")
 
     rows = []
     group_id = 1
@@ -266,7 +364,12 @@ def scan_duplicates(root: Path, algorithm: str, max_mb: float, skip_symlinks: bo
         keep_file = choose_keep_file(paths)
 
         for path in sorted(paths, key=lambda p: str(p).lower()):
-            stat = path.stat()
+            try:
+                stat = path.stat()
+                metadata = get_file_metadata(path)
+            except Exception:
+                continue
+
             quarantine = path != keep_file
             quarantine_target = safe_quarantine_path(root, path, group_id) if quarantine else ""
 
@@ -277,23 +380,32 @@ def scan_duplicates(root: Path, algorithm: str, max_mb: float, skip_symlinks: bo
                 "keep_file": str(keep_file),
                 "candidate_file": str(path),
                 "quarantine_target": str(quarantine_target),
+                "owner_username": metadata["owner_username"],
+                "last_opened": metadata["last_opened"],
+                "modified": metadata["modified"],
+                "created_or_metadata_changed": metadata["created_or_metadata_changed"],
                 "hash_algorithm": resolved_algorithm.upper(),
                 "content_hash": digest,
-                "size_bytes": size,
-                "size_mb": round(size / (1024 ** 2), 3),
-                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds"),
+                "size_bytes": stat.st_size,
+                "size_mb": round(stat.st_size / (1024 ** 2), 3),
                 "reason": f"same {resolved_algorithm.upper()} content hash",
             })
 
         group_id += 1
 
-    return files, rows, {
+    diagnostics = {
+        **collection_stats,
         "candidate_size_groups": len(candidate_groups),
         "candidate_files_hashed": hashed_files,
         "hash_errors": hash_errors,
+        "permission_hash_errors": permission_hash_errors,
         "total_candidate_files": total_candidate_files,
         "hash_algorithm": resolved_algorithm,
+        "live_duplicate_groups": live_duplicate_groups,
+        "live_duplicate_files": live_duplicate_files,
     }
+
+    return files, rows, diagnostics
 
 
 def quarantine_files(rows, manifest_csv: Path):
@@ -356,8 +468,8 @@ def main():
 
     parser.add_argument(
         "--out",
-        default="duplicate_report.csv",
-        help="CSV report output path"
+        default=None,
+        help="CSV report output path. Default: timestamped report in /network/iss/levy/analyze/vol1e/sara/reports"
     )
 
     parser.add_argument(
@@ -388,19 +500,30 @@ def main():
 
     parser.add_argument(
         "--manifest",
-        default="quarantine_manifest.csv",
-        help="CSV manifest for quarantined files."
+        default=None,
+        help="CSV manifest for quarantined files. Default: timestamped manifest in reports folder."
     )
 
     args = parser.parse_args()
 
     root = Path(args.path).expanduser().resolve()
-    output_csv = Path(args.out).expanduser().resolve()
-    manifest_csv = Path(args.manifest).expanduser().resolve()
 
     if not root.exists() or not root.is_dir():
         print(f"Invalid path: {root}", file=sys.stderr)
         sys.exit(1)
+
+    DEFAULT_REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    if args.out is None:
+        output_csv = DEFAULT_REPORT_DIR / f"duplicate_report_{timestamp}.csv"
+    else:
+        output_csv = Path(args.out).expanduser().resolve()
+
+    if args.manifest is None:
+        manifest_csv = DEFAULT_REPORT_DIR / f"quarantine_manifest_{timestamp}.csv"
+    else:
+        manifest_csv = Path(args.manifest).expanduser().resolve()
 
     files, rows, diagnostics = scan_duplicates(
         root=root,
@@ -417,11 +540,20 @@ def main():
     print()
     print("Scan complete.")
     print(f"Hash algorithm used: {diagnostics['hash_algorithm'].upper()}")
-    print(f"Files scanned: {len(files):,}")
+    print(f"Directories scanned: {diagnostics['dirs_scanned']:,}")
+    print(f"Files seen: {diagnostics['files_seen']:,}")
+    print(f"Files kept for analysis: {len(files):,}")
+    print(f"Skipped empty files: {diagnostics['skipped_empty']:,}")
+    print(f"Skipped large files: {diagnostics['skipped_large']:,}")
+    print(f"Skipped excluded/symlink files: {diagnostics['skipped_symlink_or_excluded']:,}")
+    print(f"Skipped permission denied: {diagnostics['skipped_permission']:,}")
+    print(f"Skipped unreadable/other files: {diagnostics['skipped_unreadable']:,}")
     print(f"Candidate size groups: {diagnostics['candidate_size_groups']:,}")
     print(f"Candidate files hashed: {diagnostics['candidate_files_hashed']:,}")
-    print(f"Hash/read errors: {diagnostics['hash_errors']:,}")
+    print(f"Permission errors during hashing: {diagnostics['permission_hash_errors']:,}")
+    print(f"Hash/read errors during hashing: {diagnostics['hash_errors']:,}")
     print(f"Duplicate groups found: {groups:,}")
+    print(f"Duplicate files found: {diagnostics['live_duplicate_files']:,}")
     print(f"Rows written: {len(rows):,}")
     print(f"Files recommended for quarantine: {quarantine_count:,}")
     print(f"CSV report: {output_csv}")
