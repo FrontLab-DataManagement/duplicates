@@ -95,7 +95,7 @@ BLAKE3 is faster, but optional.
 
 # Installation
 
-Clone the repository:
+Download the .py or clone the repository:
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
@@ -133,7 +133,7 @@ Example:
 python duplicate_scan.py ./data
 ```
 
-This creates a report in:
+This creates a report in the script launch directory (recommended to create a safe folder for the activity):
 
 ```text
 ./reports/
