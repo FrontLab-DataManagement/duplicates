@@ -486,7 +486,7 @@ Quarantined files:
 
 ---
 
-# Keeping a Mac awake during long scans
+# Keeping the PC awake during long scans
 
 On macOS, use:
 
