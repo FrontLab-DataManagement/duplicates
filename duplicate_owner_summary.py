@@ -778,7 +778,7 @@ def main():
         "--user",
         nargs="+",
         default=None,
-        help="Restrict scan to one or more owner usernames, e.g. --user Victor.Altmayer"
+        help="Restrict scan to one or more owner usernames, e.g. --user [username]" # replace username
     )
 
     parser.add_argument(
