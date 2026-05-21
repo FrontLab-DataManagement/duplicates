@@ -1,12 +1,48 @@
 #!/usr/bin/env python3
 
-# Example terminal commands:
-python duplicate_user_scan.py /path/to/target --per-owner-files
-python duplicate_user_scan.py /path/to/target --user Victor.Altmayer --per-owner-files
-python duplicate_user_scan.py --quarantine-from user_reports/duplicate_report_Victor.Altmayer_YYYYMMDD_HHMMSS.csv
-# caffeinate python duplicate_user_scan.py /path/to/target --per-owner-files
-# python duplicate_user_scan.py /path/to/target --user Victor.Altmayer --per-owner-files
-# python duplicate_user_scan.py --quarantine-from user_reports/duplicate_report_all_users_YYYYMMDD_HHMMSS.csv
+## =============================================================================
+# Useful Terminal Command Lines
+## =============================================================================
+# Scan all users and generate owner reports:
+# caffeinate python duplicate_owner_summary.py \
+# /path/to/target --per-owner-files
+#
+# Scan a specific user:
+# caffeinate python duplicate_owner_summary.py \
+# /path/to/target --user [username] --per-owner-files
+#
+# Scan multiple users:
+# caffeinate python duplicate_owner_summary.py \
+# /path/to/target --user [username1] [username2] [username3] \
+# --per-owner-files
+#
+# Quarantine later from a previous CSV report without rescanning:
+# caffeinate python duplicate_owner_summary.py \
+# --quarantine-from \
+# user_reports/duplicate_report_[username]_YYYYMMDD_HHMMSS.csv
+#
+# Force explicit output directory:
+# caffeinate python duplicate_owner_summary.py \
+# /path/to/target --out-dir /path/to/output \
+# --per-owner-files
+#
+# Use SHA256 instead of automatic BLAKE3 fallback:
+# caffeinate python duplicate_owner_summary.py \
+# /path/to/target --hash sha256
+#
+# Increase maximum file size:
+# caffeinate python duplicate_owner_summary.py \
+# /path/to/target --max-mb 50000
+#
+# Notes:
+# - caffeinate prevents macOS from sleeping during long scans
+# - outputs are written to ./user_reports/
+# - quarantined files move into ./quarantined_duplicates/
+# - quarantine only moves files marked QUARANTINE
+# - one file per duplicate group is always preserved as KEEP
+# - reports are sorted by reclaimable duplicate capacity
+#
+# =============================================================================
 
 import argparse
 import csv
@@ -911,3 +947,21 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+# =============================================================================
+# Open Source License:
+# MIT + Commons Clause (or replace with your final license)
+#
+# Author: Sara Monteiro
+# Copyright (c) 2026 Sara Monteiro
+#
+# Repository:
+# https://github.com/arasorietnom/ICM_FrontLab_DataManagement
+#
+# Description:
+# Open-source storage user sensitive auditing and duplicate detection framework for
+# large-scale research environments and shared file systems.
+#
+# =============================================================================
