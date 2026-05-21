@@ -10,7 +10,7 @@ authors:
   - family-names: "Monteiro"
     given-names: "Sara"
 
-repository-code: "https://github.com/arasorietnom/DuplicateUserScan"
+repository-code: "https://github.com/FrontLab-DataManagement/duplicates"
 
 abstract: >
   Duplicate User Scan is an open-source storage auditing and duplicate
