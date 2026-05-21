@@ -1,5 +1,41 @@
 #!/usr/bin/env python3
 
+## =============================================================================
+# Useful Terminal Command Lines
+## =============================================================================
+#
+# Basic duplicate scan:
+# caffeinate python duplicate_scan.py /path/to/target
+#
+# Scan with explicit report output:
+# caffeinate python duplicate_scan.py /path/to/target --out duplicate_report.csv
+#
+# Use SHA256 instead of automatic BLAKE3 fallback:
+# caffeinate python duplicate_scan.py /path/to/target --hash sha256
+#
+# Force BLAKE3:
+# caffeinate python duplicate_scan.py /path/to/target --hash blake3
+#
+# Increase maximum file size:
+# caffeinate python duplicate_scan.py /path/to/target --max-mb 50000
+#
+# Run interactive quarantine after scan based on csv output. This will move files to a save folder in script launch dir:
+# caffeinate python duplicate_scan.py /path/to/target --quarantine
+#
+# Force explicit report output directory:
+# caffeinate python duplicate_scan.py /path/to/target --out /path/to/output/duplicate_report.csv
+#
+# Notes:
+# - caffeinate prevents macOS from sleeping during long scans
+# - reports are written to ./reports/
+# - duplicate detection uses exact hashes
+# - files are grouped by size before hashing
+# - quarantine moves files instead of deleting them
+# - one file per duplicate group is always preserved
+# - BLAKE3 is preferred if available
+#
+# =============================================================================
+
 import argparse
 import csv
 import hashlib
@@ -582,3 +618,26 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# =============================================================================
+# Duplicate Scan
+#
+# Author: Sara Monteiro
+# Copyright (c) 2026 Sara Monteiro
+#
+# Repository:
+# https://github.com/arasorietnom/ICM_FrontLab_DataManagement
+#
+# License:
+# MIT + Commons Clause
+#
+# Description:
+# Open-source duplicate detection and storage auditing tool for
+# large-scale research environments, shared infrastructures,
+# neuroinformatics workflows, and institutional file systems.
+#
+# Uses file-size grouping and cryptographic hashing (BLAKE3/SHA256)
+# for exact duplicate detection.
+#
+# =============================================================================
